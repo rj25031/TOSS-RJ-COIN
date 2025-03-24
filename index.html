@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RJ Coin Toss</title>
+  <!-- Include Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Full-screen background with image and overlay */
+    body {
+      background: url('https://source.unsplash.com/1600x900/?abstract,neon') no-repeat center center fixed;
+      background-size: cover;
+      position: relative;
+    }
+    body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.3));
+      z-index: -1;
+    }
+    /* Custom keyframes for a smoother coin flip animation */
+    @keyframes flip {
+      0% {
+        transform: scale(1) rotate(0deg);
+      }
+      50% {
+        transform: scale(1.2) rotate(360deg);
+        opacity: 0.5;
+      }
+      100% {
+        transform: scale(1) rotate(720deg);
+        opacity: 1;
+      }
+    }
+    @keyframes flip-reverse {
+      0% {
+        transform: scale(1) rotate(0deg);
+      }
+      50% {
+        transform: scale(1.2) rotate(-360deg);
+        opacity: 0.5;
+      }
+      100% {
+        transform: scale(1) rotate(-720deg);
+        opacity: 1;
+      }
+    }
+    .coin-flip {
+      animation: flip 0.8s ease-in-out forwards;
+    }
+    .coin-flip-reverse {
+      animation: flip-reverse 0.8s ease-in-out forwards;
+    }
+    .coin-flip-slow {
+      animation: flip 1s ease-in-out forwards;
+    }
+    .coin-flip-fast {
+      animation: flip 0.6s ease-in-out forwards;
+    }
+    .coin-flip-reverse-slow {
+      animation: flip-reverse 1s ease-in-out forwards;
+    }
+    .coin-flip-reverse-fast {
+      animation: flip-reverse 0.6s ease-in-out forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center text-white font-sans relative overflow-hidden">
+  <!-- Decorative Elements -->
+  <div class="absolute top-10 left-5 w-32 h-32 bg-pink-500 rounded-full opacity-40 blur-3xl"></div>
+  <div class="absolute bottom-10 right-5 w-48 h-48 bg-blue-500 rounded-full opacity-30 blur-2xl"></div>
+  <div class="absolute top-1/2 left-1/4 w-24 h-24 bg-green-500 rounded-full opacity-30 blur-xl"></div>
+  
+  <h1 class="text-5xl md:text-6xl font-bold text-center mb-8 drop-shadow-lg animate-pulse">
+    ✨ RJ Coin Toss ✨
+  </h1>
+  
+  <div id="coin" class="w-48 h-48 md:w-64 md:h-64 bg-contain bg-center rounded-full shadow-lg border-4 border-white/50 transition-all duration-300" style="background-image: url('heads.png');"></div>
+  
+  <button onclick="tossCoin()" class="mt-8 px-8 py-4 bg-pink-500 text-white font-bold text-lg rounded-full shadow-lg hover:scale-105 hover:bg-pink-600 transition-transform duration-200">
+    Toss It! 🚀
+  </button>
+  
+  <div id="result" class="mt-6 text-2xl font-semibold drop-shadow-md"></div>
+  <div id="streak" class="mt-2 text-lg font-medium drop-shadow-md"></div>
+  <div id="history" class="mt-4 text-sm font-medium drop-shadow-md flex flex-wrap gap-2 justify-center"></div>
+  
+  <!-- Audio element for coin flip sound (optional) -->
+  <audio id="coinSound" src="coin-flip.mp3"></audio>
+  
+  <script>
+    const coin = document.getElementById('coin');
+    const result = document.getElementById('result');
+    const streakDisplay = document.getElementById('streak');
+    const historyDisplay = document.getElementById('history');
+    const coinSound = document.getElementById('coinSound');
+    const headsImage = 'heads.png';
+    const tailsImage = 'tails.png';
+  
+    // State variables
+    let streak = { type: null, count: 0 }; // Track streaks
+  
+    // Use Web Crypto API for better randomness
+    function getSecureRandom() {
+      const array = new Uint32Array(1);
+      crypto.getRandomValues(array);
+      return array[0] / (0xFFFFFFFF + 1); // Normalize to [0, 1)
+    }
+  
+    function tossCoin() {
+      // Disable the button during animation
+      const button = document.querySelector('button');
+      button.disabled = true;
+  
+      // Play sound if available
+      if (coinSound) {
+        coinSound.currentTime = 0;
+        coinSound.play().catch(err => console.log("Sound playback failed:", err));
+      }
+  
+      // Directly decide the outcome using secure random
+      const outcome = getSecureRandom() < 0.5 ? 'Heads' : 'Tails';
+      const isHeads = outcome === 'Heads';
+      console.log('Selected outcome:', outcome);
+  
+      // Randomly decide animation direction and speed
+      const directions = ['coin-flip', 'coin-flip-reverse'];
+      const speeds = ['', 'slow', 'fast'];
+      const randomDirection = directions[Math.floor(getSecureRandom() * directions.length)];
+      const randomSpeed = speeds[Math.floor(getSecureRandom() * speeds.length)];
+      const animationClass = randomSpeed ? `${randomDirection}-${randomSpeed}` : randomDirection;
+  
+      // Add the flip animation
+      coin.classList.remove('coin-flip', 'coin-flip-slow', 'coin-flip-fast', 'coin-flip-reverse', 'coin-flip-reverse-slow', 'coin-flip-reverse-fast');
+      void coin.offsetWidth; // Force reflow to restart the animation
+      coin.classList.add(animationClass);
+  
+      // Update coin image and result after animation
+      const animationDuration = animationClass.includes('slow') ? 1000 : animationClass.includes('fast') ? 600 : 800;
+      setTimeout(() => {
+        coin.style.backgroundImage = `url('${isHeads ? headsImage : tailsImage}')`;
+        result.textContent = `It's ${outcome}! ${isHeads ? '🫶' : '💾'}`;
+  
+        // Update streak
+        if (streak.type === outcome) {
+          streak.count++;
+        } else {
+          streak.type = outcome;
+          streak.count = 1;
+        }
+        streakDisplay.textContent = streak.count > 1 ? `${streak.type} streak: ${streak.count}! 🔥` : '';
+  
+      
+        // Re-enable the button
+        button.disabled = false;
+      }, animationDuration);
+    }
+  </script>
+</body>
+</html>
